@@ -1,55 +1,90 @@
 # PharmAssist: AI-Powered Customer Complaint Management System (QMS)
 
-> **Enterprise AI-Powered Quality Management System (QMS)**  
+> **Enterprise AI-Powered Quality Management System (QMS)**
 > An enterprise-grade, AI-driven Quality Management System (QMS) module designed for Pharmaceutical API (Active Pharmaceutical Ingredients) & FDF (Finished Dosage Form) Manufacturers. Features an interactive **LangGraph Multi-Node AI Copilot** that extracts, validates, risk-assesses, and deduplicates customer complaints in compliance with GxP and regulatory standards (USFDA / MHRA / WHO-GMP).
 
 ---
 
 ## Key Highlights & Features
 
-* **Branded Initialization**: 5-second branded splash loading screen with session-gating.
-* **Enterprise Light Mode First**: Light-mode-first design system with dark navy sidebar chrome (`#0F0E17`) and dark mode toggle.
-* **LangGraph AI Copilot**: Automated complaint extraction, defect classification, missing-field identification, and duplicate detection.
-* **Amber/Red/Green Traffic Light Risk Matrix**: Standardized severity tokens (**Critical** = Red, **Major** = Amber, **Minor** = Green) synced across donut charts, complaint tables, and risk assessment cards.
-* **21 CFR Part 11 Audit Trail**: Immutable field-level change history tracking human vs. AI actions.
+- **Branded Initialization**: 5-second branded splash loading screen with session-gating.
+- **Enterprise Light Mode First**: Light-mode-first design system with dark navy sidebar chrome (`#0F0E17`) and dark mode toggle.
+- **LangGraph AI Copilot**: Automated complaint extraction, defect classification, missing-field identification, and duplicate detection.
+- **Amber/Red/Green Traffic Light Risk Matrix**: Standardized severity tokens (**Critical** = Red, **Major** = Amber, **Minor** = Green) synced across donut charts, complaint tables, and risk assessment cards.
+- **21 CFR Part 11 Audit Trail**: Immutable field-level change history tracking human vs. AI actions.
 
 ---
 
 ## Architecture & Technology Stack
 
-### **Frontend System**
-* **Framework**: React 18 + Vite (TypeScript)
-* **State Management**: Redux Toolkit & LocalStorage Persistence
-* **Styling & Motion**: Custom CSS Design Tokens, Tailwind CSS, Framer Motion
-* **Visualizations**: Recharts (Severity & Category Distributions)
-* **Icons & UI**: Lucide React, Glassmorphism Cards, Micro-animations
+### System Architecture
 
-### **Backend System**
-* **Framework**: Python 3.11 + FastAPI (Asynchronous ASGI)
-* **Database & ORM**: SQLite (`aiosqlite`) / Async SQLAlchemy 2.0
-* **AI Orchestration**: LangGraph / LangChain Multi-Node Graph Architecture
-* **LLM Provider**: Groq API Engine (`llama-3.1-8b-instant`, `llama-3.3-70b-versatile`)
-* **Data Validation**: Pydantic v2 Schemas & Custom Model-Routing Middleware
+```
+┌─────────────────────────────┐        ┌──────────────────────────────┐
+│           FRONTEND           │        │            BACKEND            │
+│  React + TS + Vite           │        │  FastAPI (Python)             │
+│                               │  HTTP  │                                │
+│  ┌─────────────┐  ┌────────┐ │◄──────►│  ┌──────────┐   ┌───────────┐  │
+│  │ Complaint    │  │ Copilot│ │ Axios  │  │ API      │──►│ Services  │  │
+│  │ Form (Redux) │  │ Chat   │ │  JSON  │  │ Routers  │   │ (business │  │
+│  └──────┬───────┘  └───┬────┘ │        │  └──────────┘   │  logic)   │  │
+│         │              │      │        │                 └─────┬─────┘  │
+│  Redux Toolkit Store   │      │        │                       │        │
+│  (single source of     │      │        │              ┌────────▼──────┐ │
+│   truth for draft)     │      │        │              │  Repositories  │ │
+└─────────────────────────────┘        │              └────────┬──────┘ │
+                                          │                       │        │
+                                          │              ┌────────▼──────┐ │
+                                          │              │  PostgreSQL    │ │
+                                          │              └────────────────┘ │
+                                          │                                │
+                                          │  ┌──────────────────────────┐  │
+                                          │  │      LangGraph Engine     │  │
+                                          │  │  (StateGraph, checkpointed│  │
+                                          │  │   per session/complaint)  │  │
+                                          │  └─────────────┬────────────┘  │
+                                          │                │                │
+                                          │        ┌───────▼────────┐       │
+                                          │        │   Groq API      │       │
+                                          │        │ gemma2-9b-it /  │       │
+                                          │        │ llama-3.3-70b   │       │
+                                          │        └─────────────────┘       │
+                                          └──────────────────────────────┘
+```
 
-### **CI/CD & DevOps**
-* **Pipeline**: GitHub Actions (`.github/workflows/ci.yml`) for automated frontend compilation and backend import checks on every push.
+### Frontend System
+- **Framework**: React 18 + Vite (TypeScript)
+- **State Management**: Redux Toolkit — single source of truth for the complaint draft
+- **Styling & Motion**: Custom CSS Design Tokens, Tailwind CSS, Framer Motion
+- **Visualizations**: Recharts (Severity & Category Distributions)
+- **Icons & UI**: Lucide React, Glassmorphism Cards, Micro-animations
+
+### Backend System
+- **Framework**: Python 3.11 + FastAPI (Asynchronous ASGI), layered as API Routers → Services → Repositories
+- **Database & ORM**: PostgreSQL / Async SQLAlchemy 2.0
+- **AI Orchestration**: LangGraph `StateGraph`, checkpointed per session/complaint, routing through conditional risk-scoring and fallback branches
+- **LLM Provider**: Groq API Engine (`gemma2-9b-it`, `llama-3.3-70b-versatile`)
+- **Data Validation**: Pydantic v2 Schemas & Custom Model-Routing Middleware
+
+### CI/CD & DevOps
+- **Pipeline**: GitHub Actions (`.github/workflows/ci.yml`) for automated frontend compilation and backend import checks on every push.
 
 ---
 
 ## Core Functionalities
 
-### 1. **Automated Complaint Extraction & Triage**
+### 1. Automated Complaint Extraction & Triage
 - Upload complaint documents (`.pdf`, `.eml`, `.txt`) or paste raw unstructured text into the **PharmAssist Copilot**.
 - Extracts critical GxP fields automatically: *Customer Name, Source, Product Name/Grade, Batch/Lot Number, Affected Quantity, Manufacturing Date, Expiry Date, Site Block, and NPM Impact*.
 
-### 2. **AI Risk Assessment & Severity Classification**
+### 2. AI Risk Assessment & Severity Classification
 - Computes initial risk level (`Critical`, `Major`, `Minor`) and regulatory notification advice (e.g. MHRA/USFDA reportability).
 - Generates suggested next actions for QA triage officers.
 
-### 3. **Duplicate Detection Engine**
+### 3. Duplicate Detection Engine
 - Pre-filters historical QMS records using structured batch matching and text similarity algorithms to prevent duplicate complaint logging.
 
-### 4. **Multi-Model AI Switching**
+### 4. Multi-Model AI Switching
 - Dynamic model selection headers (`X-Primary-Model`, `X-Secondary-Model`) configured via Settings for flexible Groq model routing.
 
 ---
@@ -65,21 +100,21 @@ pharmassist/
 │   │   ├── components/           # UI components (Button, Modal, DonutChart, etc.)
 │   │   ├── features/             # Feature slices (complaints, copilot, settings, theme)
 │   │   ├── pages/                # Dashboard, Complaints, Copilot, Settings, SplashScreen
-│   │   ├── routes/               # AppShell navigation & router gate
-│   │   └── types/                # TypeScript interfaces
+│   │   ├── routes/                # AppShell navigation & router gate
+│   │   └── types/                 # TypeScript interfaces
 │   └── vite.config.ts
 ├── backend/                      # FastAPI Python Service
 │   ├── app/
 │   │   ├── api/                  # REST endpoints (auth, complaints, copilot, dashboard, health)
 │   │   ├── graph/                # LangGraph state graph nodes & workflow
-│   │   ├── models/               # SQLAlchemy ORM entities (Complaint, AIAnalysis, AuditLog)
-│   │   ├── repositories/         # Database access layer
-│   │   ├── schemas/              # Pydantic data schemas
-│   │   └── services/             # QMS business logic
-│   ├── main.py                   # FastAPI application entrypoint
-│   └── requirements.txt          # Python dependencies
-├── .github/workflows/ci.yml      # GitHub Actions CI build & verification workflow
-└── DESIGN_SYSTEM.md              # PharmAssist Enterprise Design Guidelines
+│   │   ├── models/                # SQLAlchemy ORM entities (Complaint, AIAnalysis, AuditLog)
+│   │   ├── repositories/          # Database access layer
+│   │   ├── schemas/                # Pydantic data schemas
+│   │   └── services/               # QMS business logic
+│   ├── main.py                    # FastAPI application entrypoint
+│   └── requirements.txt           # Python dependencies
+├── .github/workflows/ci.yml       # GitHub Actions CI build & verification workflow
+└── DESIGN_SYSTEM.md               # PharmAssist Enterprise Design Guidelines
 ```
 
 ---
@@ -87,13 +122,22 @@ pharmassist/
 ## Quickstart & Local Setup
 
 ### **Prerequisites**
-* Node.js (v18+) & npm
-* Python (v3.10+)
-* Groq API Key (Optional for live LLM extraction; mock mode supported)
+- Node.js (v18+) & npm
+- Python (v3.10+)
+- Docker (for local PostgreSQL or full containerized stack)
+- Groq API Key (required for live AI extraction; manual API CRUD works without it)
 
 ---
 
-### 1. **Backend Setup**
+### 1. Start PostgreSQL (Docker)
+
+```bash
+docker compose up -d
+```
+
+This starts a local PostgreSQL instance per the project's `docker-compose.yml`. Confirm `backend/.env` points `DATABASE_URL` at this instance before starting the backend.
+
+### 2. Backend Setup
 
 ```bash
 # Navigate to backend directory
@@ -109,17 +153,20 @@ source venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file with your Groq API key
-cp .env.example .env
+# Create .env file with your configuration:
+cp ../.env.example .env
+# For local SQLite development: DATABASE_URL=sqlite+aiosqlite:///./pharmassist.db
+# Or for PostgreSQL: DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/pharmassist
 
 # Run the FastAPI server
 uvicorn app.main:app --reload --port 8000
 ```
+
 > The API server will run at `http://localhost:8000` (Interactive Swagger Docs at `http://localhost:8000/docs`).
 
 ---
 
-### 2. **Frontend Setup**
+### 3. Frontend Setup
 
 ```bash
 # Open a new terminal and navigate to frontend directory
@@ -131,7 +178,8 @@ npm install
 # Start Vite development server
 npm run dev
 ```
-> The web application will launch at `http://localhost:5173`.
+
+> The web application will launch at `http://localhost:5174` (or `5173`).
 
 ---
 
@@ -145,6 +193,7 @@ npm run dev
 ## Compliance & Standards
 
 Designed with reference to:
+
 - **USFDA 21 CFR Part 211** (Current Good Manufacturing Practice for Finished Pharmaceuticals)
 - **EU GMP Annex 11** & **21 CFR Part 11** (Electronic Records & Signatures)
 - **ICH Q9** (Quality Risk Management Guidelines)
@@ -154,3 +203,22 @@ Designed with reference to:
 <p align="center">
 <b>PharmAssist</b> — Enterprise Quality Management System & Regulatory Intelligence
 </p>
+
+## Verification and deployment notes
+
+Run backend checks with `cd backend`, `pip install -r requirements-dev.txt`, and
+`pytest -q`. Tests use isolated in-memory databases and do not require a Groq key.
+Run `npm run build` and `npm run lint` from `frontend`.
+
+For a separately hosted frontend, explicitly set `VITE_API_BASE_URL` to your
+backend URL ending in `/api/v1` before building. Without this variable, requests
+use the same-origin `/api/v1` path (proxied to port 8000 during Vite development).
+Set `CORS_ALLOWED_ORIGINS` to your actual frontend origins on the backend.
+
+Docker Compose uses the root `.env` and starts the database, backend, and frontend.
+The backend creates missing tables at startup; this repository does not yet have
+an Alembic migration history. Existing schema changes require a migration plan.
+Copilot draft state is now stored in `copilot_sessions`, which startup creates.
+Image OCR requires both Tesseract and `pytesseract`; unavailable OCR is reported
+as requiring clarification rather than extracting invented data.
+
